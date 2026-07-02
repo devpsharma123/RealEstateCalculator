@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Real Estate Portfolio Calculator</title>
+<style>
+  :root{
+    --bg:#0f1117; --panel:#181b24; --panel2:#1f2330; --ink:#e8eaf0; --muted:#9aa1b2;
+    --accent:#5eead4; --accent2:#818cf8; --warn:#fbbf24; --good:#34d399; --bad:#f87171;
+    --border:#2a2f3e; --radius:14px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--ink); line-height:1.5; padding:24px;}
+  .wrap{max-width:1180px; margin:0 auto;}
+  header{text-align:center; margin-bottom:26px;}
+  header h1{font-size:1.9rem; letter-spacing:-.5px;}
+  header h1 span{background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  header p{color:var(--muted); font-size:.95rem; margin-top:6px;}
+  .grid{display:grid; grid-template-columns:340px 1fr; gap:20px;}
+  @media(max-width:900px){.grid{grid-template-columns:1fr;}}
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:20px;}
+  .card h2{font-size:1rem; margin-bottom:12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .card h2 .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);display:inline-block;}
+  .card h2 .dot.p{background:var(--accent2);} .card h2 .dot.y{background:var(--warn);}
+  label{display:block; font-size:.74rem; color:var(--muted); margin:11px 0 3px; text-transform:uppercase; letter-spacing:.4px;}
+  .inrow{display:flex; align-items:center; gap:8px;}
+  .inrow .pre,.inrow .post{color:var(--muted); font-size:.9rem;}
+  input[type=number]{width:100%; background:var(--panel2); border:1px solid var(--border); color:var(--ink); border-radius:8px; padding:8px 11px; font-size:.95rem; outline:none;}
+  input[type=number]:focus{border-color:var(--accent);}
+  input[type=range]{width:100%; accent-color:var(--accent);}
+  .rangeval{font-size:.85rem; color:var(--accent); font-weight:600; min-width:58px; text-align:right;}
+  .hint{font-size:.72rem; color:var(--muted); margin-top:2px;}
+  .toggle{display:flex; align-items:center; gap:8px; margin-top:12px; font-size:.85rem; cursor:pointer;}
+  .toggle input{accent-color:var(--accent); width:16px; height:16px;}
+  .big{background:linear-gradient(135deg,rgba(94,234,212,.12),rgba(129,140,248,.12)); border:1px solid rgba(94,234,212,.35); border-radius:var(--radius); padding:14px; text-align:center;}
+  .big .num{font-size:2rem; font-weight:700; color:var(--accent);}
+  .big .lbl{color:var(--muted); font-size:.78rem; text-transform:uppercase; letter-spacing:.5px;}
+  .statgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:12px;}
+  @media(max-width:700px){.statgrid{grid-template-columns:1fr 1fr;}}
+  .stat{background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:10px; text-align:center;}
+  .stat .num{font-size:1.1rem; font-weight:700;}
+  .stat .num.good{color:var(--good);} .stat .num.bad{color:var(--bad);}
+  .stat .lbl{font-size:.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-top:2px;}
+  .timebar{display:flex; align-items:center; gap:12px; margin:14px 0 4px;}
+  .timebar .tv{font-weight:700; color:var(--accent2); min-width:120px; font-size:.95rem;}
+  canvas{width:100%; height:280px; background:var(--panel2); border:1px solid var(--border); border-radius:10px; margin-top:14px;}
+  .legend{display:flex; gap:16px; font-size:.75rem; color:var(--muted); margin-top:8px; flex-wrap:wrap;}
+  .legend span::before{content:"●"; margin-right:5px;}
+  .legend .l1::before{color:var(--accent);} .legend .l2::before{color:var(--accent2);} .legend .l3::before{color:var(--warn);}
+  table{width:100%; border-collapse:collapse; font-size:.84rem; margin-top:8px;}
+  th,td{padding:8px 9px; text-align:right; border-bottom:1px solid var(--border); font-variant-numeric:tabular-nums;}
+  th:first-child,td:first-child{text-align:left;}
+  th{color:var(--muted); font-size:.7rem; text-transform:uppercase; letter-spacing:.5px; position:sticky; top:0; background:var(--panel);}
+  .tablewrap{max-height:340px; overflow-y:auto; margin-top:6px;}
+  .note{font-size:.75rem; color:var(--muted); margin-top:12px;}
+  .btnrow{display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;}
+  button{background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#0f1117; border:none; border-radius:9px; padding:9px 16px; font-weight:700; font-size:.85rem; cursor:pointer;}
+  button.ghost{background:transparent; color:var(--muted); border:1px solid var(--border);}
+  footer{text-align:center; color:var(--muted); font-size:.75rem; margin-top:24px; max-width:760px; margin-left:auto; margin-right:auto;}
+  @media print{
+    body{background:#fff;color:#111;} .card,.stat{background:#fff;border-color:#ccc;}
+    button,.btnrow,input[type=range]{display:none;} canvas{border-color:#ccc;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Real Estate <span>Portfolio Calculator</span></h1>
+    <p>Pour money in on your schedule — buy, renovate, force equity, and see the portfolio at any point in time.</p>
+  </header>
+
+  <div class="grid">
+    <!-- LEFT: INPUTS -->
+    <div>
+      <div class="card">
+        <h2><span class="dot"></span>Capital plan</h2>
+        <label>Starting capital</label>
+        <div class="inrow"><span class="pre">$</span><input type="number" id="startCap" value="100000" min="0" step="5000"></div>
+        <label>Money poured in per month</label>
+        <div class="inrow"><span class="pre">$</span><input type="number" id="monthly" value="4000" min="0" step="250"></div>
+        <div class="hint">From your main business. Set 0 to only deploy starting capital.</div>
+        <label class="toggle" style="text-transform:none;letter-spacing:0;">
+          <input type="checkbox" id="reinvest" checked> Reinvest rental cash flow into next purchases
+        </label>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h2><span class="dot p"></span>Deal profile <span style="font-size:.7rem;color:var(--muted);font-weight:400;">(above-average deal defaults)</span></h2>
+        <label>Typical property price</label>
+        <div class="inrow"><span class="pre">$</span><input type="number" id="price" value="250000" min="30000" step="10000"></div>
+        <label>Down payment</label>
+        <div class="inrow"><input type="range" id="dp" value="25" min="5" max="100" step="5"><span class="rangeval" id="dpv">25%</span></div>
+        <div class="hint">Lenders usually want 20–25% on investment property. 100% = all cash.</div>
+        <label>Closing costs</label>
+        <div class="inrow"><input type="range" id="closing" value="3" min="0" max="8" step="0.5"><span class="rangeval" id="closingv">3%</span></div>
+        <label>Mortgage rate</label>
+        <div class="inrow"><input type="range" id="rate" value="7.25" min="3" max="12" step="0.25"><span class="rangeval" id="ratev">7.25%</span></div>
+        <div class="hint">Investment loans run 7.1–7.6% as of mid-2026.</div>
+        <label>Loan term</label>
+        <div class="inrow"><input type="range" id="term" value="30" min="10" max="30" step="5"><span class="rangeval" id="termv">30 yr</span></div>
+        <label>Monthly rent (% of purchase price)</label>
+        <div class="inrow"><input type="range" id="yield" value="0.75" min="0.4" max="1.2" step="0.05"><span class="rangeval" id="yieldv">0.75%</span></div>
+        <div class="hint" id="rentHint">≈ $1,875/mo on this price. 0.6–0.7% is average; you filter better.</div>
+        <label>Vacancy</label>
+        <div class="inrow"><input type="range" id="vac" value="5" min="0" max="15" step="1"><span class="rangeval" id="vacv">5%</span></div>
+        <div class="hint">National average is ~7%. Good screening earns you ~5%.</div>
+        <label>Operating costs (% of rent)</label>
+        <div class="inrow"><input type="range" id="opex" value="38" min="15" max="60" step="1"><span class="rangeval" id="opexv">38%</span></div>
+        <div class="hint">Tax, insurance, maintenance, management, capex reserve — everything but the mortgage.</div>
+        <label>Appreciation / year</label>
+        <div class="inrow"><input type="range" id="appr" value="4" min="0" max="8" step="0.5"><span class="rangeval" id="apprv">4.0%</span></div>
+        <div class="hint">Market-driven growth only — renovation value is added separately below.</div>
+        <label>Rent growth / year</label>
+        <div class="inrow"><input type="range" id="rentg" value="3" min="0" max="8" step="0.5"><span class="rangeval" id="rentgv">3.0%</span></div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h2><span class="dot y"></span>Renovation / value-add <span style="font-size:.7rem;color:var(--muted);font-weight:400;">(forced appreciation)</span></h2>
+        <label>Renovation budget (% of purchase price)</label>
+        <div class="inrow"><input type="range" id="renoPct" value="10" min="0" max="30" step="1"><span class="rangeval" id="renoPctv">10%</span></div>
+        <div class="hint" id="renoHint">Paid in cash at purchase, on top of the down payment. Set 0 for turnkey buying.</div>
+        <label>Value added per $1 of reno</label>
+        <div class="inrow"><input type="range" id="renoMult" value="1.75" min="0.5" max="2.5" step="0.05"><span class="rangeval" id="renoMultv">1.75×</span></div>
+        <div class="hint">Well-run value-add projects appraise at $1.50–$2.00+ per dollar spent. Below 1× means the reno destroyed money.</div>
+        <label>Rent uplift after reno</label>
+        <div class="inrow"><input type="range" id="rentUp" value="12" min="0" max="30" step="1"><span class="rangeval" id="rentUpv">12%</span></div>
+        <label>Reno downtime (months, no rent)</label>
+        <div class="inrow"><input type="range" id="renoMo" value="2" min="0" max="6" step="1"><span class="rangeval" id="renoMov">2 mo</span></div>
+        <label class="toggle" style="text-transform:none;letter-spacing:0;">
+          <input type="checkbox" id="refi"> Cash-out refi after each reno (BRRRR)
+        </label>
+        <div class="hint">Re-borrows against the new, higher value at your same LTV and returns the forced equity to your cash pool — so it buys the next property sooner. Assumes 2% refi cost; skipped when it wouldn't return cash.</div>
+        <div class="btnrow">
+          <button id="save">Save scenario</button>
+          <button class="ghost" id="reset">Reset</button>
+          <button class="ghost" onclick="window.print()">Print / PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: RESULTS -->
+    <div>
+      <div class="card">
+        <h2><span class="dot y"></span>Results at your chosen timeframe</h2>
+        <div class="timebar">
+          <input type="range" id="horizon" value="120" min="6" max="360" step="6" style="flex:1;">
+          <span class="tv" id="horizonv">10 yr 0 mo</span>
+        </div>
+        <div class="statgrid" style="grid-template-columns:repeat(2,1fr);">
+          <div class="big"><div class="num" id="netWorth">$0</div><div class="lbl">Net worth created (equity + cash)</div></div>
+          <div class="big" style="border-color:rgba(129,140,248,.4);"><div class="num" style="color:var(--accent2)" id="profit">$0</div><div class="lbl">Profit over money poured in</div></div>
+        </div>
+        <div class="statgrid">
+          <div class="stat"><div class="num" id="props">0</div><div class="lbl">Properties owned</div></div>
+          <div class="stat"><div class="num" id="pval">$0</div><div class="lbl">Portfolio value</div></div>
+          <div class="stat"><div class="num" id="debt">$0</div><div class="lbl">Debt outstanding</div></div>
+          <div class="stat"><div class="num" id="equity">$0</div><div class="lbl">Equity in property</div></div>
+          <div class="stat"><div class="num" id="mcf">$0</div><div class="lbl">Cash flow / month (then)</div></div>
+          <div class="stat"><div class="num" id="cumcf">$0</div><div class="lbl">Cumulative rental profit</div></div>
+          <div class="stat"><div class="num" id="forced">$0</div><div class="lbl">Equity forced by renos</div></div>
+          <div class="stat"><div class="num" id="irr">0%</div><div class="lbl">Annualized return (IRR)</div></div>
+        </div>
+        <canvas id="chart" width="1100" height="280"></canvas>
+        <div class="legend"><span class="l1">Net worth</span><span class="l2">Money poured in</span><span class="l3">Property equity</span></div>
+        <p class="note" id="firstBuy"></p>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h2><span class="dot"></span>Year by year</h2>
+        <div class="tablewrap">
+          <table id="yearly"></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Simplified model: one deal profile applied portfolio-wide; buys happen when cash covers down payment + closing + reno budget; reno value and rent uplift land when downtime ends; optional refi recycles forced equity at your LTV. Ignores income tax on rents, depreciation benefits, and selling costs — treat results as pre-tax. Not financial advice; verify any real deal with your own numbers.
+  </footer>
+</div>
+
+<script>
+/* ==== SIM START ==== */
+function simulate(p){
+  // p: startCap, monthly, reinvest, price, dp, closing, rate, term, yield, vac, opex,
+  //    appr, rentg, renoPct, renoMult, rentUp, renoMo, refi, months
+  var mAppr = Math.pow(1+p.appr,1/12)-1;
+  var mRentG = Math.pow(1+p.rentg,1/12)-1;
+  var mr = p.rate/12;
+  var nPay = p.term*12;
+  var cash = p.startCap;
+  var invested = p.startCap;
+  var cumCF = 0;
+  var forcedEquity = 0;   // total appraisal value added by renos, net of reno cash spent
+  var props = [];         // {value, rent, balance, payment, renoLeft, renoSpend}
+  var series = [];
+  var flows = [-p.startCap];
+  var firstBuyMonth = -1;
+
+  function pmt(loan){ return mr>0 ? loan*mr/(1-Math.pow(1+mr,-nPay)) : loan/nPay; }
+
+  function finishReno(pr){
+    var added = pr.renoSpend*p.renoMult;
+    pr.value += added;
+    pr.rent  *= (1+p.rentUp);
+    forcedEquity += added - pr.renoSpend;
+    if(p.refi && p.dp<1){
+      var newLoan = pr.value*(1-p.dp);
+      var cashOut = newLoan - pr.balance - 0.02*pr.value;
+      if(cashOut>0){
+        cash += cashOut;
+        pr.balance = newLoan;
+        pr.payment = pmt(newLoan);
+      }
+    }
+  }
+
+  function tryBuy(m){
+    var priceNow = p.price*Math.pow(1+mAppr,m);
+    var need = priceNow*(p.dp+p.closing+p.renoPct);
+    while(cash >= need && props.length < 500){
+      var loan = p.dp>=1 ? 0 : priceNow*(1-p.dp);
+      var pr = {value:priceNow, rent:priceNow*p.yield, balance:loan,
+                payment:loan>0?pmt(loan):0,
+                renoLeft:p.renoPct>0?p.renoMo:0, renoSpend:priceNow*p.renoPct};
+      cash -= need;
+      if(pr.renoSpend>0 && pr.renoLeft===0) finishReno(pr);
+      props.push(pr);
+      if(firstBuyMonth<0) firstBuyMonth = m;
+      priceNow = p.price*Math.pow(1+mAppr,m);
+      need = priceNow*(p.dp+p.closing+p.renoPct);
+    }
+  }
+
+  tryBuy(0);
+  for(var m=1; m<=p.months; m++){
+    var cf = 0;
+    for(var i=0;i<props.length;i++){
+      var pr = props[i];
+      var renovating = pr.renoLeft>0;
+      var net = renovating ? 0 : pr.rent*(1-p.vac)*(1-p.opex);
+      var interest = pr.balance*mr;
+      if(pr.balance>0){
+        var principal = Math.min(pr.payment-interest, pr.balance);
+        pr.balance -= principal;
+        net -= (interest+principal);
+      }
+      cf += net;
+      pr.value *= (1+mAppr);
+      pr.rent  *= (1+mRentG);
+      if(renovating){
+        pr.renoLeft--;
+        if(pr.renoLeft===0) finishReno(pr);
+      }
+    }
+    cumCF += cf;
+    cash += p.monthly;
+    invested += p.monthly;
+    if(p.reinvest) cash += cf;
+    flows.push(-p.monthly);
+    tryBuy(m);
+    var pv=0, debt=0;
+    for(var i=0;i<props.length;i++){ pv+=props[i].value; debt+=props[i].balance; }
+    series.push({m:m, props:props.length, pv:pv, debt:debt, equity:pv-debt,
+                 netWorth:pv-debt+cash+(p.reinvest?0:cumCF),
+                 mcf:cf, cumCF:cumCF, invested:invested, forced:forcedEquity});
+  }
+  var last = series[series.length-1] || {m:0,props:props.length,pv:0,debt:0,equity:0,netWorth:cash,mcf:0,cumCF:0,invested:invested,forced:forcedEquity};
+  var terminal = last.netWorth;
+  function npv(r){
+    var s=0;
+    for(var i=0;i<flows.length;i++) s += flows[i]/Math.pow(1+r,i);
+    return s + terminal/Math.pow(1+r,p.months);
+  }
+  var lo=-0.05, hi=0.05, irr=null;
+  if(npv(lo)>0 !== npv(hi)>0){
+    for(var k=0;k<80;k++){ var mid=(lo+hi)/2; (npv(mid)>0 === npv(lo)>0) ? lo=mid : hi=mid; }
+    irr = Math.pow(1+(lo+hi)/2,12)-1;
+  }
+  return {series:series, last:last, irr:irr, firstBuyMonth:firstBuyMonth};
+}
+/* ==== SIM END ==== */
+
+(function(){
+  var $=function(id){return document.getElementById(id);};
+  var ids=['startCap','monthly','reinvest','price','dp','closing','rate','term','yield','vac','opex','appr','rentg','renoPct','renoMult','rentUp','renoMo','refi','horizon'];
+  var checks={reinvest:1, refi:1};
+  var fmt=function(n){
+    var a=Math.abs(n);
+    if(a>=1e6) return (n<0?'-':'')+'$'+(a/1e6).toFixed(2)+'M';
+    return (n<0?'-':'')+'$'+Math.round(a).toLocaleString('en-US');
+  };
+
+  function params(){
+    return {
+      startCap:+$('startCap').value||0, monthly:+$('monthly').value||0,
+      reinvest:$('reinvest').checked,
+      price:+$('price').value||1, dp:+$('dp').value/100, closing:+$('closing').value/100,
+      rate:+$('rate').value/100, term:+$('term').value,
+      yield:+$('yield').value/100, vac:+$('vac').value/100, opex:+$('opex').value/100,
+      appr:+$('appr').value/100, rentg:+$('rentg').value/100,
+      renoPct:+$('renoPct').value/100, renoMult:+$('renoMult').value,
+      rentUp:+$('rentUp').value/100, renoMo:+$('renoMo').value,
+      refi:$('refi').checked,
+      months:+$('horizon').value
+    };
+  }
+
+  function run(){
+    var p=params();
+    $('dpv').textContent=Math.round(p.dp*100)+'%';
+    $('closingv').textContent=(p.closing*100).toFixed(1).replace('.0','')+'%';
+    $('ratev').textContent=(p.rate*100).toFixed(2)+'%';
+    $('termv').textContent=p.term+' yr';
+    $('yieldv').textContent=(p.yield*100).toFixed(2)+'%';
+    $('vacv').textContent=Math.round(p.vac*100)+'%';
+    $('opexv').textContent=Math.round(p.opex*100)+'%';
+    $('apprv').textContent=(p.appr*100).toFixed(1)+'%';
+    $('rentgv').textContent=(p.rentg*100).toFixed(1)+'%';
+    $('renoPctv').textContent=Math.round(p.renoPct*100)+'%';
+    $('renoMultv').textContent=p.renoMult.toFixed(2)+'×';
+    $('rentUpv').textContent=Math.round(p.rentUp*100)+'%';
+    $('renoMov').textContent=p.renoMo+' mo';
+    var yy=Math.floor(p.months/12), mm=p.months%12;
+    $('horizonv').textContent=yy+' yr '+mm+' mo';
+    $('rentHint').textContent='≈ '+fmt(p.price*p.yield)+'/mo on this price. 0.6–0.7% is average; you filter better.';
+    var spend=p.price*p.renoPct;
+    $('renoHint').textContent = p.renoPct>0
+      ? '≈ '+fmt(spend)+' cash per property → adds ≈ '+fmt(spend*p.renoMult)+' of value and '+Math.round(p.rentUp*100)+'% more rent.'
+      : 'Paid in cash at purchase, on top of the down payment. Set 0 for turnkey buying.';
+
+    var r=simulate(p), L=r.last;
+    $('netWorth').textContent=fmt(L.netWorth);
+    $('profit').textContent=fmt(L.netWorth-L.invested);
+    $('props').textContent=L.props;
+    $('pval').textContent=fmt(L.pv);
+    $('debt').textContent=fmt(L.debt);
+    $('equity').textContent=fmt(L.equity);
+    var mcfEl=$('mcf'); mcfEl.textContent=fmt(L.mcf);
+    mcfEl.className='num '+(L.mcf>=0?'good':'bad');
+    $('cumcf').textContent=fmt(L.cumCF);
+    $('forced').textContent=fmt(L.forced);
+    $('irr').textContent=r.irr===null?'—':(r.irr*100).toFixed(1)+'%';
+    $('firstBuy').textContent = r.firstBuyMonth<0
+      ? 'No purchase happens in this window — capital never covers a down payment + reno. Lower the price, raise contributions, reduce the down payment, or shrink the reno budget.'
+      : 'First purchase in month '+(r.firstBuyMonth===0?'0 (immediately)':r.firstBuyMonth)+'. Total poured in by then: '+fmt(L.invested)+'. Negative monthly cash flow early on is normal with leverage'+(p.refi?' — and refis add debt, trading cash flow for speed':'')+'.';
+
+    drawChart(r.series);
+    tableOut(r.series);
+  }
+
+  function drawChart(s){
+    var c=$('chart'), ctx=c.getContext('2d');
+    ctx.clearRect(0,0,c.width,c.height);
+    if(!s.length) return;
+    var W=c.width, H=c.height, padL=70, padR=16, padT=14, padB=26;
+    var maxY=0;
+    s.forEach(function(d){ maxY=Math.max(maxY,d.netWorth,d.invested,d.equity); });
+    if(maxY<=0) maxY=1;
+    var x=function(i){ return padL+(W-padL-padR)*i/(s.length-1||1); };
+    var y=function(v){ return H-padB-(H-padT-padB)*v/maxY; };
+    ctx.strokeStyle='#2a2f3e'; ctx.fillStyle='#9aa1b2'; ctx.font='11px Segoe UI'; ctx.textAlign='right';
+    for(var g=0;g<=4;g++){
+      var v=maxY*g/4, yy=y(v);
+      ctx.beginPath(); ctx.moveTo(padL,yy); ctx.lineTo(W-padR,yy); ctx.stroke();
+      ctx.fillText(v>=1e6?(v/1e6).toFixed(1)+'M':Math.round(v/1000)+'k', padL-8, yy+4);
+    }
+    ctx.textAlign='center';
+    var step=Math.max(1,Math.round(s.length/6));
+    for(var i=0;i<s.length;i+=step){ ctx.fillText('yr '+(s[i].m/12).toFixed(1), x(i), H-8); }
+    function line(key,color){
+      ctx.strokeStyle=color; ctx.lineWidth=2; ctx.beginPath();
+      s.forEach(function(d,i){ var yy=y(Math.max(d[key],0)); i?ctx.lineTo(x(i),yy):ctx.moveTo(x(i),yy); });
+      ctx.stroke();
+    }
+    line('equity','#fbbf24');
+    line('invested','#818cf8');
+    line('netWorth','#5eead4');
+  }
+
+  function tableOut(s){
+    var rows='<tr><th>Year</th><th>Props</th><th>Portfolio value</th><th>Debt</th><th>Equity</th><th>Forced equity</th><th>Cash flow/mo</th><th>Poured in</th><th>Net worth</th></tr>';
+    for(var i=11;i<s.length;i+=12){
+      var d=s[i];
+      rows+='<tr><td>'+((d.m)/12)+'</td><td>'+d.props+'</td><td>'+fmt(d.pv)+'</td><td>'+fmt(d.debt)+'</td><td>'+fmt(d.equity)+'</td><td>'+fmt(d.forced)+'</td><td>'+fmt(d.mcf)+'</td><td>'+fmt(d.invested)+'</td><td>'+fmt(d.netWorth)+'</td></tr>';
+    }
+    var last=s[s.length-1];
+    if(last && last.m%12!==0){
+      rows+='<tr><td>'+(last.m/12).toFixed(1)+'</td><td>'+last.props+'</td><td>'+fmt(last.pv)+'</td><td>'+fmt(last.debt)+'</td><td>'+fmt(last.equity)+'</td><td>'+fmt(last.forced)+'</td><td>'+fmt(last.mcf)+'</td><td>'+fmt(last.invested)+'</td><td>'+fmt(last.netWorth)+'</td></tr>';
+    }
+    document.getElementById('yearly').innerHTML=rows;
+  }
+
+  ids.forEach(function(f){ $(f).addEventListener('input',run); $(f).addEventListener('change',run); });
+
+  var KEY='repc_v2';
+  $('save').addEventListener('click',function(){
+    var o={}; ids.forEach(function(f){ o[f]= checks[f] ? $(f).checked : $(f).value; });
+    try{ localStorage.setItem(KEY,JSON.stringify(o)); $('save').textContent='Saved ✓';
+      setTimeout(function(){$('save').textContent='Save scenario';},1500);
+    }catch(e){}
+  });
+  $('reset').addEventListener('click',function(){
+    try{localStorage.removeItem(KEY);}catch(e){}
+    location.reload();
+  });
+  try{
+    var saved=localStorage.getItem(KEY);
+    if(saved){ var o=JSON.parse(saved);
+      ids.forEach(function(f){ if(o[f]!==undefined){ if(checks[f])$(f).checked=!!o[f]; else $(f).value=o[f]; } });
+    }
+  }catch(e){}
+
+  run();
+})();
+</script>
+</body>
+</html>
